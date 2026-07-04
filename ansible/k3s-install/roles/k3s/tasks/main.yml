@@ -1,0 +1,8 @@
+---
+- name: Install k3s server
+  include_tasks: server.yml
+  when: inventory_hostname in groups['k3s_server']
+
+- name: Install k3s agent
+  include_tasks: agent.yml
+  when: inventory_hostname in groups['k3s_agent']

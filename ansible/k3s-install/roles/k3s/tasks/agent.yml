@@ -1,0 +1,20 @@
+---
+- name: Determine k3s server address
+  set_fact:
+    k3s_server_host: "{{ hostvars[groups['k3s_server'][0]].ansible_host | default(groups['k3s_server'][0]) }}"
+    k3s_server_token: "{{ hostvars[groups['k3s_server'][0]].k3s_node_token }}"
+
+- name: Download and run k3s agent install script
+  shell: >
+    curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION={{ k3s_version }}
+    K3S_URL="https://{{ k3s_server_host }}:6443"
+    K3S_TOKEN="{{ k3s_server_token }}"
+    INSTALL_K3S_EXEC="agent {{ k3s_agent_extra_args }}" sh -
+  args:
+    creates: "{{ k3s_install_dir }}/k3s"
+
+- name: Ensure k3s-agent service is enabled and running
+  systemd:
+    name: k3s-agent
+    enabled: true
+    state: started

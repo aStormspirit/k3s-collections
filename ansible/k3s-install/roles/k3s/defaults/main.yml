@@ -1,0 +1,10 @@
+---
+k3s_version: "v1.30.5+k3s1"
+k3s_install_dir: /usr/local/bin
+k3s_token_path: /var/lib/rancher/k3s/server/node-token
+k3s_config_dir: /etc/rancher/k3s
+k3s_kubeconfig_mode: "0644"
+
+# Extra arguments appended to the server/agent systemd unit, e.g. "--disable traefik"
+k3s_server_extra_args: ""
+k3s_agent_extra_args: ""
