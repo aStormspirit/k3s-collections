@@ -1,0 +1,83 @@
+name: server-ops
+
+# Manually-triggered operations against the infrastructure.
+# The SSH private key is provided via the repository secret K3S_DEPLOY_SSH_KEY
+# (never commit the key itself).
+#
+# Runner choice:
+#   * ubuntu-latest        - GitHub-hosted; reaches public hosts (e.g. 31.192.110.64).
+#   * <your self-hosted>   - required to reach the private inventory (192.168.1.x).
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "Operation to run"
+        type: choice
+        required: true
+        default: apt-upgrade
+        options:
+          - apt-upgrade
+          - ansible-playbook
+      runner_label:
+        description: "Runner to execute on (ubuntu-latest, or a self-hosted label)"
+        type: string
+        required: true
+        default: ubuntu-latest
+      target:
+        description: "apt-upgrade only: SSH target (user@host)"
+        type: string
+        required: false
+        default: root@31.192.110.64
+      reboot_if_needed:
+        description: "apt-upgrade only: reboot the host if the upgrade requires it"
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  run:
+    runs-on: ${{ inputs.runner_label }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure SSH key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.K3S_DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: apt upgrade
+        if: ${{ inputs.task == 'apt-upgrade' }}
+        run: |
+          set -euo pipefail
+          TARGET='${{ inputs.target }}'
+          echo "::group::apt-get update && upgrade on ${TARGET}"
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=accept-new "${TARGET}" \
+            'DEBIAN_FRONTEND=noninteractive apt-get update \
+             && DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::="--force-confold" upgrade'
+          echo "::endgroup::"
+
+          echo "::group::reboot check"
+          NEEDS_REBOOT=$(ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=accept-new "${TARGET}" \
+            'test -f /var/run/reboot-required && echo yes || echo no')
+          echo "reboot-required: ${NEEDS_REBOOT}"
+          if [ "${NEEDS_REBOOT}" = "yes" ] && [ "${{ inputs.reboot_if_needed }}" = "true" ]; then
+            echo "Triggering reboot..."
+            ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=accept-new "${TARGET}" \
+              'nohup sh -c "sleep 2 && systemctl reboot" >/dev/null 2>&1 &' || true
+            echo "Reboot requested."
+          fi
+          echo "::endgroup::"
+
+      - name: ansible-playbook
+        if: ${{ inputs.task == 'ansible-playbook' }}
+        working-directory: ansible/k3s-install
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet ansible
+          ansible-playbook \
+            --private-key ~/.ssh/id_ed25519 \
+            -i inventory/hosts.ini \
+            playbook.yml
