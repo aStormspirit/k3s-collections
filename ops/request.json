@@ -1,0 +1,7 @@
+{
+  "task": "apt-upgrade",
+  "target": "root@31.192.110.64",
+  "reboot_if_needed": false,
+  "nonce": "20260705T194040Z",
+  "note": "update packages on public host"
+}
