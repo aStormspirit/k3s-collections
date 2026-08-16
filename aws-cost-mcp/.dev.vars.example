@@ -1,0 +1,7 @@
+# Copy to `.dev.vars` for local `wrangler dev`. NEVER commit the real file.
+# Use a NEW, least-privilege key — not one that was ever pasted into a chat.
+AWS_ACCESS_KEY_ID=AKIA_your_new_key_here
+AWS_SECRET_ACCESS_KEY=your_new_secret_here
+AWS_REGION=us-east-1
+# A token you invent, e.g. `openssl rand -hex 32`
+MCP_AUTH_TOKEN=change_me_to_a_long_random_string

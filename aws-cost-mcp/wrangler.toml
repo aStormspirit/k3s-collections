@@ -1,0 +1,20 @@
+name = "aws-cost-mcp"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# --- Configuration ---
+# Non-secret vars can live here. Region defaults to us-east-1 because the
+# Cost Explorer (ce) endpoint is only served from us-east-1 regardless of
+# where your resources actually run.
+[vars]
+AWS_REGION = "us-east-1"
+
+# --- Secrets (DO NOT put these here or in git) ---
+# Set them once with wrangler; they are stored encrypted:
+#   wrangler secret put AWS_ACCESS_KEY_ID
+#   wrangler secret put AWS_SECRET_ACCESS_KEY
+#   wrangler secret put MCP_AUTH_TOKEN
+#
+# MCP_AUTH_TOKEN is a token YOU invent (e.g. `openssl rand -hex 32`). The
+# server rejects any request that does not send it as `Authorization: Bearer`.
